@@ -321,7 +321,7 @@ main{padding:16px 16px 0}
       <div class="bkinfo">Exporte para salvar no Google Drive.<br>Restaure para recuperar em outro iPhone.</div>
       <input type="file" id="importInput" accept=".json" onchange="importBk(event)">
     </div>
-    <div class="ver">Controle.fin v18</div>
+    <div class="ver">Controle.fin v19</div>
   </div>
 
   <!-- GRUPO PANEL (dinâmico) -->
@@ -446,15 +446,20 @@ main{padding:16px 16px 0}
     <label class="flabel">Descrição</label>
     <input class="finput" id="iDesc" placeholder="Ex: Tim, Mercado, Claude...">
     <div class="frow">
-      <div><label class="flabel">Valor (R$)</label><input class="finput" id="iVal" type="number" step="0.01" min="0" placeholder="0,00" inputmode="decimal"></div>
-      <div><label class="flabel">Tipo</label><select class="fselect" id="iRec" onchange="toggleParcelas()"><option value="variavel">Variável</option><option value="fixo">Fixo (repete)</option><option value="parcelado">Parcelado</option></select></div>
+      <div><label class="flabel" id="iValLbl">Valor (R$)</label><input class="finput" id="iVal" type="number" step="0.01" min="0" placeholder="0,00" inputmode="decimal" oninput="refreshParcUI()"></div>
+      <div><label class="flabel">Tipo</label><select class="fselect" id="iRec" onchange="refreshParcUI()"><option value="variavel">Variável</option><option value="fixo">Fixo (repete)</option><option value="parcelado">Parcelado</option></select></div>
+    </div>
+    <div id="editModoRow" style="display:none">
+      <label class="flabel">O que alterar?</label>
+      <select class="fselect" id="iEditModo" onchange="onEditModo()"><option value="compra">Compra inteira (recalcula as parcelas)</option><option value="parcela">Só esta parcela</option></select>
     </div>
     <div id="parcelasRow" style="display:none">
       <div class="frow">
-        <div><label class="flabel">Nº de parcelas</label><input class="finput" id="iTotalParc" type="number" min="2" max="120" placeholder="Ex: 12" inputmode="numeric"></div>
-        <div><label class="flabel">Parcela inicial</label><input class="finput" id="iParcAtual" type="number" min="1" max="120" placeholder="Ex: 1" inputmode="numeric"></div>
+        <div><label class="flabel">Nº de parcelas</label><input class="finput" id="iTotalParc" type="number" min="2" max="120" placeholder="Ex: 12" inputmode="numeric" oninput="refreshParcUI()"></div>
+        <div><label class="flabel">Parcela inicial</label><input class="finput" id="iParcAtual" type="number" min="1" max="120" placeholder="Ex: 1" inputmode="numeric" oninput="refreshParcUI()"></div>
       </div>
     </div>
+    <div id="parcPreview" style="display:none;margin:-4px 0 13px;padding:9px 12px;border-radius:10px;background:var(--blue-bg);color:var(--blue);font-size:.76rem;font-weight:600;line-height:1.45"></div>
     <div id="vencRow" style="display:none">
       <label class="flabel">Dia de vencimento</label>
       <input class="finput" id="iDiaVenc" type="number" min="1" max="31" placeholder="Ex: 10" inputmode="numeric">
@@ -705,7 +710,7 @@ function propagateFixos(){
       }else if(orig.rec==='parcelado'){
         const parcAtual=(orig.parcAtual||1)+mesesPassados;
         if(parcAtual<=(orig.totalParc||1)){
-          toAdd.push({...orig,id:Date.now()+Math.random(),sourceId:sidN||sid,parcAtual});
+          toAdd.push({...orig,id:Date.now()+Math.random(),sourceId:sidN||sid,parcAtual,value:orig.valorTotal?parcValue(orig.valorTotal,orig.totalParc||1,parcAtual):orig.value});
         }
       }
     });
@@ -809,6 +814,7 @@ function renderGrupo(gid){
     let dateLabel='';
     if(i.rec==='fixo'&&i.diaVenc) dateLabel='Vence dia '+String(i.diaVenc).padStart(2,'0');
     else if(i.dataLanc) dateLabel='Inserido em '+new Date(i.dataLanc).toLocaleDateString('pt-BR');
+    if(i.rec==='parcelado'&&i.valorTotal)dateLabel='Compra de '+fmt(i.valorTotal)+(dateLabel?' · '+dateLabel:'');
     const dateHtml=dateLabel?`<div class="idate">${dateLabel}</div>`:'';
     return`<div class="irow">
       <div class="idot" style="background:${g.cor}"></div>
@@ -843,14 +849,43 @@ function renderEditList(){
 function closeOv(id,e){if(e.target===document.getElementById(id))document.getElementById(id).classList.remove('open');}
 function openOv(id){document.getElementById(id).classList.add('open');}
 
-function toggleParcelas(){
-  const rec=document.getElementById('iRec').value;
-  document.getElementById('parcelasRow').style.display=rec==='parcelado'?'block':'none';
-  document.getElementById('vencRow').style.display=rec==='fixo'?'block':'none';
+// Parcelamento: o usuário informa o VALOR TOTAL da compra; o app divide.
+// Sobra de centavos vai para a 1ª parcela (ex.: 1000 em 3x => 333,34 + 333,33 + 333,33).
+function parcSchedule(total,n){
+  const t=Math.round(total*100),b=Math.floor(t/n),r=t-b*n;
+  return {base:b/100,first:(b+r)/100,rest:r>0};
 }
+function parcValue(total,n,k){const s=parcSchedule(total,n);return k===1?s.first:s.base;}
+let editOrigRec='',editItemRef=null;
+function refreshParcUI(){
+  const $=id=>document.getElementById(id);
+  const rec=$('iRec').value,parc=rec==='parcelado';
+  const editParc=!!editItemId&&editOrigRec==='parcelado'&&parc;
+  $('editModoRow').style.display=editParc?'block':'none';
+  const soParcela=editParc&&$('iEditModo').value==='parcela';
+  $('iValLbl').textContent=parc?(soParcela?'Valor da parcela (R$)':'Valor total (R$)'):'Valor (R$)';
+  $('parcelasRow').style.display=parc&&!soParcela?'block':'none';
+  $('vencRow').style.display=rec==='fixo'?'block':'none';
+  const box=$('parcPreview');
+  if(!parc||soParcela){box.style.display='none';return;}
+  const val=parseFloat($('iVal').value),n=parseInt($('iTotalParc').value)||0,k=parseInt($('iParcAtual').value)||1;
+  box.style.display='block';
+  if(!(val>0)||n<2){box.textContent='Digite o valor total da compra e o nº de parcelas — o app calcula cada parcela.';return;}
+  const sc=parcSchedule(val,n);
+  let t=sc.rest?`1ª parcela ${fmt(sc.first)} + ${n-1}× de ${fmt(sc.base)}`:`${n}× de ${fmt(sc.base)}`;
+  if(k>1)t+=` · começando na parcela ${k}/${n}`;
+  box.textContent=t;
+}
+function onEditModo(){
+  const it=editItemRef;if(!it)return;
+  const so=document.getElementById('iEditModo').value==='parcela';
+  document.getElementById('iVal').value=so?it.value:(it.valorTotal||Math.round(it.value*(it.totalParc||1)*100)/100);
+  refreshParcUI();
+}
+function toggleParcelas(){refreshParcUI();}
 
 function openItemModal(gid){
-  editGrupoId=gid;editItemId=null;
+  editGrupoId=gid;editItemId=null;editOrigRec='';editItemRef=null;
   const g=loadGrupos().find(x=>x.id===gid);
   document.getElementById('itemModalTitle').textContent='+ '+(g?g.nome:'Item');
   document.getElementById('iDesc').value='';
@@ -861,6 +896,8 @@ function openItemModal(gid){
   document.getElementById('iTotalParc').value='';
   document.getElementById('iParcAtual').value='1';
   document.getElementById('iDiaVenc').value='';
+  document.getElementById('iEditModo').value='compra';
+  refreshParcUI();
   buildCatSelect('');
   openOv('ovItem');
   setTimeout(()=>document.getElementById('iDesc').focus(),300);
@@ -870,17 +907,21 @@ function openEditItemModal(gid,id){
   editGrupoId=gid;editItemId=id;
   const item=loadItens(gid).find(i=>i.id===id);
   if(!item)return;
+  editOrigRec=item.rec;editItemRef=item;
   document.getElementById('itemModalTitle').textContent='Editar item';
   document.getElementById('iDesc').value=item.desc;
-  document.getElementById('iVal').value=item.value;
   document.getElementById('iRec').value=item.rec;
+  document.getElementById('iEditModo').value='compra';
   if(item.rec==='parcelado'){
-    document.getElementById('parcelasRow').style.display='block';
+    // mostra o VALOR TOTAL da compra (itens antigos: parcela × nº de parcelas)
+    document.getElementById('iVal').value=item.valorTotal||Math.round(item.value*(item.totalParc||1)*100)/100;
     document.getElementById('iTotalParc').value=item.totalParc||'';
     document.getElementById('iParcAtual').value=item.parcAtual||1;
-  }else{document.getElementById('parcelasRow').style.display='none';}
-  document.getElementById('vencRow').style.display=item.rec==='fixo'?'block':'none';
+  }else{
+    document.getElementById('iVal').value=item.value;
+  }
   document.getElementById('iDiaVenc').value=item.rec==='fixo'?(item.diaVenc||''):'';
+  refreshParcUI();
   buildCatSelect(item.cat||'');
   openOv('ovItem');
   setTimeout(()=>document.getElementById('iDesc').focus(),300);
@@ -893,11 +934,23 @@ function saveItem(){
   if(!desc||isNaN(val)||val<=0){toast('Preencha descrição e valor.');return;}
   const cat=document.getElementById('iCat').value||'';
   let extra={};
+  const soParcela=!!editItemId&&editOrigRec==='parcelado'&&rec==='parcelado'&&document.getElementById('iEditModo').value==='parcela';
+  if(soParcela){
+    // Ajuste manual de UMA parcela (ex.: a fatura veio diferente): muda só este mês
+    saveItens(editGrupoId,loadItens(editGrupoId).map(i=>i.id===editItemId?{...i,desc,value:val,cat}:i));
+    toast('Parcela ajustada só neste mês.');
+    document.getElementById('ovItem').classList.remove('open');
+    renderGrupo(editGrupoId);render();return;
+  }
+  let valItem=val;
   if(rec==='parcelado'){
     const tot=parseInt(document.getElementById('iTotalParc').value)||0;
     const atual=parseInt(document.getElementById('iParcAtual').value)||1;
     if(tot<2){toast('Informe o número de parcelas (mín. 2).');return;}
-    extra={totalParc:tot,parcAtual:atual};
+    if(tot>120){toast('Máximo de 120 parcelas.');return;}
+    if(atual>tot){toast('A parcela inicial não pode ser maior que o nº de parcelas.');return;}
+    extra={totalParc:tot,parcAtual:atual,valorTotal:val};
+    valItem=parcValue(val,tot,atual);
   }else if(rec==='fixo'){
     const dv=parseInt(document.getElementById('iDiaVenc').value);
     if(!dv||dv<1||dv>31){toast('Informe o dia de vencimento (1-31).');return;}
@@ -907,7 +960,7 @@ function saveItem(){
   if(editItemId){
     // Edição: atualiza no mês atual e nos futuros (onde sourceId bate)
     let list=loadItens(editGrupoId);
-    list=list.map(i=>i.id===editItemId?{...i,desc,value:val,rec,cat,...extra}:i);
+    list=list.map(i=>i.id===editItemId?{...i,desc,value:valItem,rec,cat,...extra}:i);
     saveItens(editGrupoId,list);
     // Atualiza propagações futuras
     const sid=editItemId;
@@ -920,7 +973,7 @@ function saveItem(){
         if(rec==='parcelado'){
           const novaParcAtual=(extra.parcAtual||1)+i;
           if(novaParcAtual<=(extra.totalParc||1)){
-            fl[idx]={...fl[idx],desc,value:val,rec,cat,parcAtual:novaParcAtual,totalParc:extra.totalParc};
+            fl[idx]={...fl[idx],desc,value:parcValue(val,extra.totalParc,novaParcAtual),valorTotal:val,rec,cat,parcAtual:novaParcAtual,totalParc:extra.totalParc};
             saveItens(editGrupoId,fl,fm,fy);
           } else {
             // Parcela encerrada — remove dos meses futuros
@@ -939,7 +992,7 @@ function saveItem(){
   } else {
     // Novo item
     const newId=Date.now();
-    const novoItem={id:newId,desc,value:val,rec,cat,dataLanc:new Date().toISOString(),...extra};
+    const novoItem={id:newId,desc,value:valItem,rec,cat,dataLanc:new Date().toISOString(),...extra};
     // Salva no mês atual
     const list=loadItens(editGrupoId);
     list.push(novoItem);
@@ -967,12 +1020,12 @@ function saveItem(){
         while(fm>11){fm-=12;fy++;}
         const fl=loadItens(editGrupoId,fm,fy);
         if(!fl.find(x=>x.sourceId===newId)){
-          fl.push({...novoItem,id:Date.now()+Math.random(),sourceId:newId,parcAtual:novaParcAtual});
+          fl.push({...novoItem,id:Date.now()+Math.random(),sourceId:newId,parcAtual:novaParcAtual,value:parcValue(val,parcTotal,novaParcAtual)});
           saveItens(editGrupoId,fl,fm,fy);
         }
       }
     }
-    toast('Item salvo!');
+    toast(rec==='parcelado'?('Compra parcelada salva! '+(parcSchedule(val,extra.totalParc).rest?'1ª parcela '+fmt(valItem)+' + demais '+fmt(parcSchedule(val,extra.totalParc).base):extra.totalParc+'× de '+fmt(valItem))):'Item salvo!');
   }
 
   document.getElementById('ovItem').classList.remove('open');
