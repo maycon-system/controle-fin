@@ -8,7 +8,8 @@ export function createIncomeRepo({ db, now }: RepoDeps) {
       await db.run(
         `INSERT INTO income (month, amount_cents, updated_at, deleted_at) VALUES (?, ?, ?, NULL)
          ON CONFLICT (month) DO UPDATE SET
-           amount_cents = excluded.amount_cents, updated_at = excluded.updated_at, deleted_at = NULL`,
+           amount_cents = excluded.amount_cents, updated_at = excluded.updated_at,
+           dirty = 1, deleted_at = NULL`,
         [month, amountCents, now()],
       );
     },

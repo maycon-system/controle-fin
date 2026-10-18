@@ -94,7 +94,7 @@ export function createRecurrencesRepo({ db, newId, now }: RepoDeps) {
       await db.run(
         `UPDATE recurrences SET group_id = ?, category_id = ?, description = ?, kind = ?, amount_cents = ?,
            total_cents = ?, start_month = ?, end_month = ?, installments = ?, first_installment = ?,
-           due_day = ?, updated_at = ?
+           due_day = ?, updated_at = ?, dirty = 1
          WHERE id = ?`,
         [
           n.groupId,
@@ -116,7 +116,7 @@ export function createRecurrencesRepo({ db, newId, now }: RepoDeps) {
 
     /** Último mês em que a regra vale (inclusivo). `null` reabre a regra. */
     async setEndMonth(id: string, endMonth: YearMonth | null): Promise<void> {
-      await db.run('UPDATE recurrences SET end_month = ?, updated_at = ? WHERE id = ?', [
+      await db.run('UPDATE recurrences SET end_month = ?, updated_at = ?, dirty = 1 WHERE id = ?', [
         endMonth,
         now(),
         id,
@@ -125,7 +125,7 @@ export function createRecurrencesRepo({ db, newId, now }: RepoDeps) {
 
     async remove(id: string): Promise<void> {
       const t = now();
-      await db.run('UPDATE recurrences SET deleted_at = ?, updated_at = ? WHERE id = ?', [t, t, id]);
+      await db.run('UPDATE recurrences SET deleted_at = ?, updated_at = ?, dirty = 1 WHERE id = ?', [t, t, id]);
     },
   };
 }

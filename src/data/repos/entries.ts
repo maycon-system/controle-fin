@@ -70,7 +70,7 @@ export function createEntriesRepo({ db, newId, now }: RepoDeps) {
       if (!cur) return;
       const next = { ...toEntry(cur), ...patch };
       await db.run(
-        `UPDATE entries SET group_id = ?, category_id = ?, description = ?, amount_cents = ?, month = ?, updated_at = ?
+        `UPDATE entries SET group_id = ?, category_id = ?, description = ?, amount_cents = ?, month = ?, updated_at = ?, dirty = 1
          WHERE id = ?`,
         [
           next.groupId,
@@ -86,7 +86,7 @@ export function createEntriesRepo({ db, newId, now }: RepoDeps) {
 
     async remove(id: string): Promise<void> {
       const t = now();
-      await db.run('UPDATE entries SET deleted_at = ?, updated_at = ? WHERE id = ?', [t, t, id]);
+      await db.run('UPDATE entries SET deleted_at = ?, updated_at = ?, dirty = 1 WHERE id = ?', [t, t, id]);
     },
 
     async listByMonth(month: YearMonth): Promise<Entry[]> {

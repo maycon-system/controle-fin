@@ -34,7 +34,7 @@ export function createCategoriesRepo({ db, newId, now }: RepoDeps) {
     async update(id: string, patch: { name?: string; color?: string }): Promise<void> {
       const cur = await db.first<Row>('SELECT id, name, color FROM categories WHERE id = ?', [id]);
       if (!cur) return;
-      await db.run('UPDATE categories SET name = ?, color = ?, updated_at = ? WHERE id = ?', [
+      await db.run('UPDATE categories SET name = ?, color = ?, updated_at = ?, dirty = 1 WHERE id = ?', [
         patch.name ?? cur.name,
         patch.color ?? cur.color,
         now(),
@@ -46,9 +46,9 @@ export function createCategoriesRepo({ db, newId, now }: RepoDeps) {
     async remove(id: string): Promise<void> {
       const t = now();
       await db.transaction(async () => {
-        await db.run('UPDATE entries SET category_id = NULL, updated_at = ? WHERE category_id = ?', [t, id]);
-        await db.run('UPDATE recurrences SET category_id = NULL, updated_at = ? WHERE category_id = ?', [t, id]);
-        await db.run('UPDATE categories SET deleted_at = ?, updated_at = ? WHERE id = ?', [t, t, id]);
+        await db.run('UPDATE entries SET category_id = NULL, updated_at = ?, dirty = 1 WHERE category_id = ?', [t, id]);
+        await db.run('UPDATE recurrences SET category_id = NULL, updated_at = ?, dirty = 1 WHERE category_id = ?', [t, id]);
+        await db.run('UPDATE categories SET deleted_at = ?, updated_at = ?, dirty = 1 WHERE id = ?', [t, t, id]);
       });
     },
   };

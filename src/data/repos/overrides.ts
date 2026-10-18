@@ -32,6 +32,7 @@ export function createOverridesRepo({ db, now }: RepoDeps) {
            amount_cents = excluded.amount_cents,
            skipped = excluded.skipped,
            updated_at = excluded.updated_at,
+           dirty = 1,
            deleted_at = NULL`,
         [o.recurrenceId, o.month, o.amountCents ?? null, o.skipped ? 1 : 0, now()],
       );
@@ -40,7 +41,7 @@ export function createOverridesRepo({ db, now }: RepoDeps) {
     async remove(recurrenceId: string, month: YearMonth): Promise<void> {
       const t = now();
       await db.run(
-        'UPDATE recurrence_overrides SET deleted_at = ?, updated_at = ? WHERE recurrence_id = ? AND month = ?',
+        'UPDATE recurrence_overrides SET deleted_at = ?, updated_at = ?, dirty = 1 WHERE recurrence_id = ? AND month = ?',
         [t, t, recurrenceId, month],
       );
     },

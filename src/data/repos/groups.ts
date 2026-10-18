@@ -52,7 +52,7 @@ export function createGroupsRepo({ db, newId, now }: RepoDeps) {
     async update(id: string, patch: { name?: string; color?: string }): Promise<void> {
       const cur = await db.first<Row>(`SELECT ${COLS} FROM groups WHERE id = ?`, [id]);
       if (!cur) return;
-      await db.run('UPDATE groups SET name = ?, color = ?, updated_at = ? WHERE id = ?', [
+      await db.run('UPDATE groups SET name = ?, color = ?, updated_at = ?, dirty = 1 WHERE id = ?', [
         patch.name ?? cur.name,
         patch.color ?? cur.color,
         now(),
@@ -63,9 +63,9 @@ export function createGroupsRepo({ db, newId, now }: RepoDeps) {
     /** Marca o grupo PIX (só um por vez). `null` remove a marca. */
     async setPix(id: string | null): Promise<void> {
       await db.transaction(async () => {
-        await db.run('UPDATE groups SET is_pix = 0, updated_at = ? WHERE is_pix = 1', [now()]);
+        await db.run('UPDATE groups SET is_pix = 0, updated_at = ?, dirty = 1 WHERE is_pix = 1', [now()]);
         if (id) {
-          await db.run('UPDATE groups SET is_pix = 1, updated_at = ? WHERE id = ?', [now(), id]);
+          await db.run('UPDATE groups SET is_pix = 1, updated_at = ?, dirty = 1 WHERE id = ?', [now(), id]);
         }
       });
     },
@@ -75,14 +75,14 @@ export function createGroupsRepo({ db, newId, now }: RepoDeps) {
       const t = now();
       await db.transaction(async () => {
         await db.run(
-          'UPDATE entries SET deleted_at = ?, updated_at = ? WHERE group_id = ? AND deleted_at IS NULL',
+          'UPDATE entries SET deleted_at = ?, updated_at = ?, dirty = 1 WHERE group_id = ? AND deleted_at IS NULL',
           [t, t, id],
         );
         await db.run(
-          'UPDATE recurrences SET deleted_at = ?, updated_at = ? WHERE group_id = ? AND deleted_at IS NULL',
+          'UPDATE recurrences SET deleted_at = ?, updated_at = ?, dirty = 1 WHERE group_id = ? AND deleted_at IS NULL',
           [t, t, id],
         );
-        await db.run('UPDATE groups SET deleted_at = ?, is_pix = 0, updated_at = ? WHERE id = ?', [
+        await db.run('UPDATE groups SET deleted_at = ?, is_pix = 0, updated_at = ?, dirty = 1 WHERE id = ?', [
           t,
           t,
           id,

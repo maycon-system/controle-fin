@@ -84,7 +84,20 @@ CREATE TABLE bank_entries (
 CREATE INDEX idx_bank_month ON bank_entries(month);
 `;
 
-export const MIGRATIONS: string[] = [V1];
+// v2: sincronização. Toda linha nasce "suja" (dirty = 1) até o servidor confirmar o envio;
+// o que já existia também sobe no primeiro login.
+const V2 = `
+ALTER TABLE groups ADD COLUMN dirty INTEGER NOT NULL DEFAULT 1;
+ALTER TABLE categories ADD COLUMN dirty INTEGER NOT NULL DEFAULT 1;
+ALTER TABLE entries ADD COLUMN dirty INTEGER NOT NULL DEFAULT 1;
+ALTER TABLE recurrences ADD COLUMN dirty INTEGER NOT NULL DEFAULT 1;
+ALTER TABLE recurrence_overrides ADD COLUMN dirty INTEGER NOT NULL DEFAULT 1;
+ALTER TABLE income ADD COLUMN dirty INTEGER NOT NULL DEFAULT 1;
+ALTER TABLE bank_entries ADD COLUMN dirty INTEGER NOT NULL DEFAULT 1;
+CREATE TABLE sync_state (key TEXT PRIMARY KEY, value TEXT NOT NULL);
+`;
+
+export const MIGRATIONS: string[] = [V1, V2];
 
 export async function migrate(db: Db): Promise<void> {
   const row = await db.first<{ user_version: number }>('PRAGMA user_version');
