@@ -3,6 +3,7 @@ import { View } from 'react-native';
 
 import type { Category } from '../../data/repos/categories';
 import type { Group } from '../../data/repos/groups';
+import { AccountCard } from '../../ui/AccountCard';
 import { useData, useMonthData, useRepos } from '../../ui/context';
 import { MonthHeader } from '../../ui/MonthHeader';
 import {
@@ -116,6 +117,8 @@ export default function Editar() {
           )}
         </Card>
         <Button label="+ Nova categoria" variant="ghost" onPress={() => setEditing({ type: 'category', item: null })} />
+
+        <AccountCard />
       </Screen>
 
       <NameColorSheet

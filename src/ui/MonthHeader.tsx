@@ -4,6 +4,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { monthLabel } from '../domain/month';
 import { useMonth } from './context';
 import { Txt } from './primitives';
+import { SyncBadge } from './SyncBadge';
 import { colors, MAX_WIDTH } from './theme';
 
 /** Cabeçalho comum com o seletor de mês. */
@@ -33,6 +34,7 @@ export function MonthHeader() {
             <Txt size={18} color={colors.muted}>›</Txt>
           </Pressable>
         </View>
+        <SyncBadge />
       </View>
     </SafeAreaView>
   );

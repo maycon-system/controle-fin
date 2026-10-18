@@ -9,6 +9,7 @@ import {
 } from 'react';
 
 import { loadMonth, type MonthData } from '../data/actions';
+import type { Db } from '../data/db';
 import type { Repos } from '../data/repos';
 import { addMonths, monthOf, type YearMonth } from '../domain/month';
 
@@ -23,6 +24,19 @@ export function useRepos(): Repos {
   const r = useContext(ReposContext);
   if (!r) throw new Error('useRepos fora do ReposProvider');
   return r;
+}
+
+// ── Banco (para a sincronização) ────────────────────────────────────────────
+const DbContext = createContext<Db | null>(null);
+
+export function DbProvider({ db, children }: { db: Db; children: ReactNode }) {
+  return <DbContext.Provider value={db}>{children}</DbContext.Provider>;
+}
+
+export function useDb(): Db {
+  const d = useContext(DbContext);
+  if (!d) throw new Error('useDb fora do DbProvider');
+  return d;
 }
 
 // ── Mês selecionado ─────────────────────────────────────────────────────────

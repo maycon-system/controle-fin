@@ -11,7 +11,24 @@ import {
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 
-import { AppProviders } from '../ui/AppProviders';
+import { AppProviders, Loading } from '../ui/AppProviders';
+import { AuthProvider, useAuth } from '../ui/AuthProvider';
+
+function RootNavigator() {
+  const { session, loading } = useAuth();
+  if (loading) return <Loading />;
+  return (
+    <Stack screenOptions={{ headerShown: false }}>
+      <Stack.Protected guard={!!session}>
+        <Stack.Screen name="(tabs)" />
+        <Stack.Screen name="grupo/[id]" />
+      </Stack.Protected>
+      <Stack.Protected guard={!session}>
+        <Stack.Screen name="login" />
+      </Stack.Protected>
+    </Stack>
+  );
+}
 
 export default function RootLayout() {
   const [loaded, error] = useFonts({
@@ -25,9 +42,11 @@ export default function RootLayout() {
   if (!loaded && !error) return null;
 
   return (
-    <AppProviders>
-      <StatusBar style="dark" />
-      <Stack screenOptions={{ headerShown: false }} />
-    </AppProviders>
+    <AuthProvider>
+      <AppProviders>
+        <StatusBar style="dark" />
+        <RootNavigator />
+      </AppProviders>
+    </AuthProvider>
   );
 }
