@@ -72,8 +72,10 @@ export default function Editar() {
                   style={{ padding: 14, gap: 10, borderTopWidth: i ? 1 : 0, borderTopColor: colors.border }}>
                   <View style={{ width: 10, height: 10, borderRadius: 5, backgroundColor: g.color }} />
                   <View style={{ flex: 1 }}>
-                    <Txt weight="medium">{g.name}{g.isPix ? '  · PIX' : ''}</Txt>
-                    <Txt size={11} color={colors.muted}>{count} itens neste mês</Txt>
+                    <Txt weight="medium">{g.name}</Txt>
+                    <Txt size={11} color={colors.muted}>
+                      {count} {count === 1 ? 'item' : 'itens'} neste mês{g.isPix ? ' · abate do saldo bancário' : ''}
+                    </Txt>
                   </View>
                   <Button label="Editar" variant="soft" small onPress={() => setEditing({ type: 'group', item: g })} />
                   <Button label="Excluir" variant="danger" small onPress={() => setDeleting({ type: 'group', item: g, count })} />

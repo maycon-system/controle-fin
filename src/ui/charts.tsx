@@ -26,7 +26,7 @@ export function Donut({ slices, total }: { slices: Slice[]; total: Cents }) {
     <Row style={{ gap: 14 }}>
       <View style={{ width: 90, height: 90 }}>
         <Svg width={90} height={90} viewBox="0 0 90 90">
-          <G rotation={-90} origin="45, 45">
+          <G transform="rotate(-90 45 45)">
             <Circle cx={45} cy={45} r={R} fill="none" stroke="#f0f2f5" strokeWidth={10} />
             {arcs.map(({ s, dash, offset }) => (
               <Circle
@@ -44,8 +44,10 @@ export function Donut({ slices, total }: { slices: Slice[]; total: Cents }) {
           </G>
         </Svg>
         <View style={{ position: 'absolute', inset: 0, alignItems: 'center', justifyContent: 'center' }}>
-          <Txt mono weight="medium" size={11}>
-            {total >= 100000 ? `R$${(Math.round(total / 10000) / 10).toString().replace('.', ',')}k` : formatBRL(total).replace('R$ ', 'R$')}
+          <Txt mono weight="medium" size={10}>
+            {total >= 100000
+              ? `R$${(Math.round(total / 10000) / 10).toString().replace('.', ',')}k`
+              : `R$${Math.round(total / 100)}`}
           </Txt>
           <Txt size={8} color={colors.muted}>total</Txt>
         </View>

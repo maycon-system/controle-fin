@@ -10,6 +10,8 @@ import { MonthHeader } from '../../ui/MonthHeader';
 import { Button, Card, Row, Screen, SectionTitle, Txt } from '../../ui/primitives';
 import { colors } from '../../ui/theme';
 
+const itemCount = (n: number) => `${n} ${n === 1 ? 'item' : 'itens'}`;
+
 export default function Resumo() {
   const router = useRouter();
   const { data } = useMonthData();
@@ -116,7 +118,7 @@ export default function Resumo() {
               <Txt size={10} weight="bold" color={g.color} upper style={{ marginTop: 5, marginBottom: 6 }}>{g.name}</Txt>
               <Txt mono size={16}>{formatBRL(summary.byGroup[g.id] ?? 0)}</Txt>
               <Txt size={9} color={colors.muted} style={{ marginTop: 2 }}>
-                {occurrences.filter((o) => o.groupId === g.id).length} itens
+                {itemCount(occurrences.filter((o) => o.groupId === g.id).length)}
               </Txt>
             </Pressable>
           ))}
