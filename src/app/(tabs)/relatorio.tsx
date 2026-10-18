@@ -1,25 +1,19 @@
 import { useState } from 'react';
 import { View } from 'react-native';
 
-import type { Category } from '../../data/repos/categories';
-import type { Group } from '../../data/repos/groups';
+import { loadReport, type ReportData } from '../../data/reports';
 import { formatBRL } from '../../domain/money';
-import { MONTHS_FULL, monthLabel, rangeOfMonths, type YearMonth } from '../../domain/month';
-import { computeOccurrences } from '../../domain/occurrences';
-import { buildReport, type Report } from '../../domain/report';
+import { MONTHS_FULL, monthLabel } from '../../domain/month';
+import { buildPeriod, type Period, type ReportKind } from '../../domain/reportPeriod';
 import { useRepos } from '../../ui/context';
 import { MonthHeader } from '../../ui/MonthHeader';
 import { Button, Card, ChipRow, Row, Screen, SectionTitle, Txt } from '../../ui/primitives';
 import { colors } from '../../ui/theme';
 
-type Kind = 'mensal' | 'periodo' | 'anual';
+type Kind = ReportKind;
 
-interface Result {
-  title: string;
-  subtitle: string;
-  report: Report;
-  groups: Group[];
-  categories: Category[];
+interface Result extends ReportData {
+  period: Period;
 }
 
 export default function Relatorio() {
@@ -42,51 +36,10 @@ export default function Relatorio() {
 
   async function generate() {
     setError('');
-    const y = Number(year);
-    let first: YearMonth;
-    let last: YearMonth;
-    let title: string;
-    let subtitle: string;
-    const ym = (month: string): YearMonth => `${y}-${String(Number(month) + 1).padStart(2, '0')}`;
-
-    if (kind === 'mensal') {
-      first = last = ym(m1);
-      title = `Relatório — ${monthLabel(first, true)}`;
-      subtitle = 'Mês completo';
-    } else if (kind === 'periodo') {
-      first = ym(m1);
-      last = ym(m2);
-      if (Number(m2) < Number(m1)) return setError('O mês final não pode ser antes do mês inicial.');
-      title = `Relatório — ${MONTHS_FULL[Number(m1)]} a ${MONTHS_FULL[Number(m2)]} ${y}`;
-      subtitle = `${rangeOfMonths(first, last).length} meses`;
-    } else {
-      first = `${y}-01`;
-      last = `${y}-12`;
-      title = `Relatório anual ${y}`;
-      subtitle = 'Janeiro a Dezembro';
-    }
-
-    const months = rangeOfMonths(first, last);
-    const [entries, recurrences, overrides, groups, categories] = await Promise.all([
-      repos.entries.listBetween(first, last),
-      repos.recurrences.list(),
-      repos.overrides.list(),
-      repos.groups.list(),
-      repos.categories.list(),
-    ]);
-    const occurrencesByMonth: Record<string, ReturnType<typeof computeOccurrences>> = {};
-    const incomeByMonth: Record<string, number> = {};
-    for (const m of months) {
-      occurrencesByMonth[m] = computeOccurrences(m, entries, recurrences, overrides);
-      incomeByMonth[m] = await repos.income.forMonth(m);
-    }
-    setResult({
-      title,
-      subtitle,
-      report: buildReport({ months, occurrencesByMonth, incomeByMonth }),
-      groups,
-      categories,
-    });
+    const built = buildPeriod({ kind, year: Number(year), monthFrom: Number(m1), monthTo: Number(m2) });
+    if (!built.ok) return setError(built.error);
+    const data = await loadReport(repos, built.period.months);
+    setResult({ ...data, period: built.period });
   }
 
   const r = result?.report;
@@ -125,8 +78,8 @@ export default function Relatorio() {
         {result && r ? (
           <Card style={{ padding: 0, overflow: 'hidden' }}>
             <View style={{ backgroundColor: colors.text, padding: 16 }}>
-              <Txt weight="bold" color="#fff">{result.title}</Txt>
-              <Txt size={11} color="rgba(255,255,255,0.55)">{result.subtitle}</Txt>
+              <Txt weight="bold" color="#fff">{result.period.title}</Txt>
+              <Txt size={11} color="rgba(255,255,255,0.55)">{result.period.subtitle}</Txt>
             </View>
 
             <View style={{ flexDirection: 'row', flexWrap: 'wrap', backgroundColor: colors.border, gap: 1 }}>
