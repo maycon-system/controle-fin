@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { View } from 'react-native';
+import { Platform, View } from 'react-native';
 
 import { loadReport, type ReportData } from '../../data/reports';
 import { formatBRL } from '../../domain/money';
@@ -8,6 +8,9 @@ import { buildPeriod, type Period, type ReportKind } from '../../domain/reportPe
 import { useRepos } from '../../ui/context';
 import { MonthHeader } from '../../ui/MonthHeader';
 import { Button, Card, ChipRow, Row, Screen, SectionTitle, Txt } from '../../ui/primitives';
+import { runPdfAction, visibleActions } from '../../services/pdf/run';
+import { pdfActions } from '../../services/pdf/share';
+import type { PdfActionId } from '../../services/pdf/share.types';
 import { colors } from '../../ui/theme';
 
 type Kind = ReportKind;
@@ -27,6 +30,7 @@ export default function Relatorio() {
   const [year, setYear] = useState(String(thisYear));
   const [result, setResult] = useState<Result | null>(null);
   const [error, setError] = useState('');
+  const [pdfMsg, setPdfMsg] = useState('');
 
   const monthOptions = MONTHS_FULL.map((n, i) => ({ value: String(i), label: n.slice(0, 3) }));
   const yearOptions = Array.from({ length: thisYear + 2 - 2025 + 1 }, (_, i) => String(2025 + i)).map((y) => ({
@@ -40,6 +44,14 @@ export default function Relatorio() {
     if (!built.ok) return setError(built.error);
     const data = await loadReport(repos, built.period.months);
     setResult({ ...data, period: built.period });
+    setPdfMsg('');
+  }
+
+  function onPdf(id: PdfActionId) {
+    setPdfMsg('');
+    // runPdfAction chama a ação de forma síncrona (exigência do navegador para compartilhar/abrir).
+    const ctx = result ? { period: result.period, data: result } : null;
+    void runPdfAction(id, ctx, pdfActions).then((m) => setPdfMsg(m ?? ''));
   }
 
   const r = result?.report;
@@ -129,6 +141,34 @@ export default function Relatorio() {
               </View>
             ) : null}
           </Card>
+        ) : null}
+
+        {result ? (
+          <View style={{ marginTop: 4, marginBottom: 8 }}>
+            {visibleActions(Platform.OS).includes('share') ? (
+              <Button label="📤 Compartilhar PDF" variant="green" onPress={() => onPdf('share')} style={{ marginBottom: 8 }} />
+            ) : null}
+            <Row style={{ gap: 8 }}>
+              {visibleActions(Platform.OS).includes('open') ? (
+                <Button label="🌐 Abrir PDF" variant="ghost" onPress={() => onPdf('open')} style={{ flex: 1 }} />
+              ) : null}
+              {visibleActions(Platform.OS).includes('download') ? (
+                <Button label="💾 Baixar PDF" variant="ghost" onPress={() => onPdf('download')} style={{ flex: 1 }} />
+              ) : null}
+              <Button label="🖨️ Imprimir" variant="ghost" onPress={() => onPdf('print')} style={{ flex: 1 }} />
+            </Row>
+            {pdfMsg ? (
+              <Txt size={12} color={colors.muted} style={{ textAlign: 'center', marginTop: 10, lineHeight: 18 }}>
+                {pdfMsg}
+              </Txt>
+            ) : (
+              <Txt size={11} color={colors.muted} style={{ textAlign: 'center', marginTop: 10, lineHeight: 16 }}>
+                {Platform.OS === 'web'
+                  ? 'Compartilhar abre o menu do navegador, quando ele permite.'
+                  : 'Compartilhar e Imprimir abrem o menu do aparelho (Salvar em Arquivos, WhatsApp, E-mail, Imprimir…).'}
+              </Txt>
+            )}
+          </View>
         ) : null}
       </Screen>
     </>
