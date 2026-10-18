@@ -7,6 +7,7 @@ import { wrapExpoDb } from '../data/expoDb';
 import { migrate } from '../data/migrations';
 import { createRepos } from '../data/repos';
 import { DataProvider, DbProvider, MonthProvider, ReposProvider } from './context';
+import { DbErrorBoundary } from './DbErrorBoundary';
 import { SyncProvider } from './SyncProvider';
 import { colors } from './theme';
 
@@ -50,10 +51,12 @@ function Inner({ children }: { children: ReactNode }) {
 /** Banco local + estado do app. Precisa estar dentro do AuthProvider (a sincronização usa a sessão). */
 export function AppProviders({ children }: { children: ReactNode }) {
   return (
-    <Suspense fallback={<Loading />}>
-      <SQLiteProvider databaseName="controlefin.db" onInit={onInit} useSuspense>
-        <Inner>{children}</Inner>
-      </SQLiteProvider>
-    </Suspense>
+    <DbErrorBoundary>
+      <Suspense fallback={<Loading />}>
+        <SQLiteProvider databaseName="controlefin.db" onInit={onInit} useSuspense>
+          <Inner>{children}</Inner>
+        </SQLiteProvider>
+      </Suspense>
+    </DbErrorBoundary>
   );
 }
