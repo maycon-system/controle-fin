@@ -40,6 +40,8 @@ export function makeBackup() {
     { id: 100, desc: 'Curso', value: 140, rec: 'parcelado', totalParc: 12, parcAtual: 1, valorTotal: 1680, cat: 'c1' },
   ];
   d.cfin_nb_10_2026 = [
+    // cópia automática de novembro (mês depois do backup): usa o valor ORIGINAL, não a decisão do usuário
+    { id: 10.9, desc: 'NuVida', value: 99.99, rec: 'fixo', sourceId: 1, cat: 'c1' },
     { id: 101.1, desc: 'Curso', value: 140, rec: 'parcelado', totalParc: 12, parcAtual: 2, valorTotal: 1680, sourceId: 100 },
   ];
   d.cfin_nb_11_2026 = [

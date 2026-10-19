@@ -135,11 +135,16 @@ export function parseBackup(json: unknown, newId: () => string): ImportPlan {
   for (const chain of chains.values()) {
     const byMonth = new Map<YearMonth, RawItem>();
     for (const mem of chain.members) byMonth.set(mem.month, mem.item); // mês repetido: vale o último
-    const months = [...byMonth.keys()].sort();
+    const allMonths = [...byMonth.keys()].sort();
+    // O que vale é o que o usuário decidiu até o mês atual do backup. Meses depois dele são cópias que o app
+    // antigo gerou sozinho ao abrir aquele mês (com o valor ORIGINAL), então não definem regra nem exceção.
+    const upToNow = currentMonth ? allMonths.filter((mo) => mo <= currentMonth) : allMonths;
+    const months = upToNow.length > 0 ? upToNow : allMonths; // cadeia que só existe no futuro: usa tudo
     const first = byMonth.get(months[0])!;
     const last = byMonth.get(months[months.length - 1])!;
     const startMonth = months[0];
-    const lastMonth = months[months.length - 1];
+    const lastMonth = months[months.length - 1]; // último mês decidido
+    const lastMonthAny = allMonths[allMonths.length - 1]; // inclui cópias futuras
     const id = newId();
     const base = {
       id, groupId: chain.gid, categoryId: last.cat ? (catId.get(last.cat) ?? null) : null,
@@ -155,7 +160,7 @@ export function parseBackup(json: unknown, newId: () => string): ImportPlan {
         ...base, kind: 'fixed', amountCents: ruleCents, totalCents: 0, startMonth, endMonth: null,
         installments: 0, firstInstallment: 1, dueDay: last.diaVenc ?? first.diaVenc ?? null,
       };
-      if (currentMonth && lastMonth < currentMonth) rec.endMonth = lastMonth; // parou antes do mês atual: foi excluído
+      if (currentMonth && lastMonthAny < currentMonth) rec.endMonth = lastMonth; // parou antes do mês atual: foi excluído
     } else {
       const k0 = first.parcAtual ?? 1;
       const n = Math.max(last.totalParc ?? first.totalParc ?? 1, k0, last.parcAtual ?? 1);
@@ -170,8 +175,9 @@ export function parseBackup(json: unknown, newId: () => string): ImportPlan {
         ...base, kind: 'installment', amountCents: 0, totalCents, startMonth, endMonth: null,
         installments: n, firstInstallment: k0, dueDay: null,
       };
-      const lastK = last.parcAtual ?? k0 + monthsBetween(startMonth, lastMonth);
-      if (currentMonth && lastMonth < currentMonth && lastK < n) rec.endMonth = lastMonth; // cancelado no meio
+      const lastAny = byMonth.get(lastMonthAny)!;
+      const lastK = lastAny.parcAtual ?? k0 + monthsBetween(startMonth, lastMonthAny);
+      if (currentMonth && lastMonthAny < currentMonth && lastK < n) rec.endMonth = lastMonth; // cancelado no meio
       for (const month of months) {
         const k = byMonth.get(month)!.parcAtual;
         if (k !== undefined && k !== k0 + monthsBetween(startMonth, month)) {

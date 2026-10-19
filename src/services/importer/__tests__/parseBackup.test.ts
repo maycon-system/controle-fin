@@ -55,6 +55,13 @@ describe('parseBackup', () => {
     });
   });
 
+  it('o valor da regra é o do mês atual do backup; cópia de mês futuro não vira regra nem exceção', () => {
+    const p = plan();
+    const nu = p.recurrences.find((r) => r.description === 'NuVida')!;
+    expect(nu.amountCents).toBe(1716); // e não os 99,99 da cópia de novembro
+    expect(p.overrides.some((o) => o.recurrenceId === nu.id && o.month > '2026-10')).toBe(false);
+  });
+
   it('valor diferente num mês vira exceção; mês ausente vira "pulado"', () => {
     const p = plan();
     const nu = p.recurrences.find((r) => r.description === 'NuVida')!;
