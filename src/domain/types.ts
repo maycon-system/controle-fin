@@ -8,6 +8,7 @@ export interface Entry {
   description: string;
   amountCents: Cents;
   month: YearMonth;
+  insertedOn?: string; // AAAA-MM-DD
 }
 
 export interface Recurrence {
@@ -23,6 +24,7 @@ export interface Recurrence {
   installments: number; // total de parcelas (installment)
   firstInstallment: number; // parcela em que startMonth cai (installment)
   dueDay?: number | null;
+  insertedOn?: string; // AAAA-MM-DD
 }
 
 export interface Override {
@@ -44,4 +46,6 @@ export interface Occurrence {
   installment?: { current: number; total: number };
   dueDay?: number | null;
   overridden: boolean;
+  totalCents?: Cents; // valor da compra (parcelados)
+  insertedOn?: string; // AAAA-MM-DD
 }

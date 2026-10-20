@@ -16,7 +16,7 @@ export function computeOccurrences(
       key: `e:${e.id}`, source: 'entry', sourceId: e.id,
       groupId: e.groupId, categoryId: e.categoryId ?? null,
       description: e.description, amountCents: e.amountCents,
-      kind: 'variable', overridden: false,
+      kind: 'variable', overridden: false, insertedOn: e.insertedOn,
     });
   }
 
@@ -44,6 +44,7 @@ export function computeOccurrences(
       groupId: r.groupId, categoryId: r.categoryId ?? null,
       description: r.description, amountCents: amount,
       kind: r.kind, installment, dueDay: r.dueDay ?? null, overridden,
+      totalCents: r.kind === 'installment' ? r.totalCents : undefined, insertedOn: r.insertedOn,
     });
   }
 

@@ -15,10 +15,18 @@ interface Row {
   installments: number;
   first_installment: number;
   due_day: number | null;
+  created_at?: string;
 }
 
 const COLS =
   'id, group_id, category_id, description, kind, amount_cents, total_cents, start_month, end_month, installments, first_installment, due_day';
+const SEL = `${COLS}, created_at`;
+
+const pad = (n: number) => String(n).padStart(2, '0');
+function localDateOf(iso?: string): string | undefined {
+  const d = iso ? new Date(iso) : null;
+  return d && !Number.isNaN(d.getTime()) ? `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}` : undefined;
+}
 
 const toRecurrence = (r: Row): Recurrence => ({
   id: r.id,
@@ -33,6 +41,7 @@ const toRecurrence = (r: Row): Recurrence => ({
   installments: r.installments,
   firstInstallment: r.first_installment,
   dueDay: r.due_day,
+  insertedOn: localDateOf(r.created_at),
 });
 
 export type NewRecurrence = Omit<Recurrence, 'id'>;
@@ -74,7 +83,7 @@ export function createRecurrencesRepo({ db, newId, now }: RepoDeps) {
 
     async get(id: string): Promise<Recurrence | null> {
       const row = await db.first<Row>(
-        `SELECT ${COLS} FROM recurrences WHERE id = ? AND deleted_at IS NULL`,
+        `SELECT ${SEL} FROM recurrences WHERE id = ? AND deleted_at IS NULL`,
         [id],
       );
       return row ? toRecurrence(row) : null;
@@ -82,7 +91,7 @@ export function createRecurrencesRepo({ db, newId, now }: RepoDeps) {
 
     async list(): Promise<Recurrence[]> {
       const rows = await db.all<Row>(
-        `SELECT ${COLS} FROM recurrences WHERE deleted_at IS NULL ORDER BY created_at`,
+        `SELECT ${SEL} FROM recurrences WHERE deleted_at IS NULL ORDER BY created_at`,
       );
       return rows.map(toRecurrence);
     },

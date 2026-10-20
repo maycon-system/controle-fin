@@ -9,9 +9,11 @@ interface Row {
   description: string;
   amount_cents: number;
   month: string;
+  occurred_on?: string;
 }
 
 const COLS = 'id, group_id, category_id, description, amount_cents, month';
+const SEL = `${COLS}, occurred_on`;
 
 const toEntry = (r: Row): Entry => ({
   id: r.id,
@@ -20,6 +22,7 @@ const toEntry = (r: Row): Entry => ({
   description: r.description,
   amountCents: r.amount_cents,
   month: r.month,
+  insertedOn: r.occurred_on,
 });
 
 export interface NewEntry {
@@ -66,7 +69,7 @@ export function createEntriesRepo({ db, newId, now }: RepoDeps) {
     },
 
     async update(id: string, patch: EntryPatch): Promise<void> {
-      const cur = await db.first<Row>(`SELECT ${COLS} FROM entries WHERE id = ?`, [id]);
+      const cur = await db.first<Row>(`SELECT ${SEL} FROM entries WHERE id = ?`, [id]);
       if (!cur) return;
       const next = { ...toEntry(cur), ...patch };
       await db.run(
@@ -91,7 +94,7 @@ export function createEntriesRepo({ db, newId, now }: RepoDeps) {
 
     async listByMonth(month: YearMonth): Promise<Entry[]> {
       const rows = await db.all<Row>(
-        `SELECT ${COLS} FROM entries WHERE month = ? AND deleted_at IS NULL ORDER BY created_at`,
+        `SELECT ${SEL} FROM entries WHERE month = ? AND deleted_at IS NULL ORDER BY created_at`,
         [month],
       );
       return rows.map(toEntry);
@@ -100,7 +103,7 @@ export function createEntriesRepo({ db, newId, now }: RepoDeps) {
     /** Meses de `from` a `to`, ambos inclusivos. */
     async listBetween(from: YearMonth, to: YearMonth): Promise<Entry[]> {
       const rows = await db.all<Row>(
-        `SELECT ${COLS} FROM entries WHERE month >= ? AND month <= ? AND deleted_at IS NULL ORDER BY month, created_at`,
+        `SELECT ${SEL} FROM entries WHERE month >= ? AND month <= ? AND deleted_at IS NULL ORDER BY month, created_at`,
         [from, to],
       );
       return rows.map(toEntry);

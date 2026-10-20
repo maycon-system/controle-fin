@@ -159,6 +159,7 @@ export function parseBackup(json: unknown, newId: () => string): ImportPlan {
       rec = {
         ...base, kind: 'fixed', amountCents: ruleCents, totalCents: 0, startMonth, endMonth: null,
         installments: 0, firstInstallment: 1, dueDay: last.diaVenc ?? first.diaVenc ?? null,
+        insertedOn: occurredOn(first, startMonth),
       };
       if (currentMonth && lastMonthAny < currentMonth) rec.endMonth = lastMonth; // parou antes do mês atual: foi excluído
     } else {
@@ -174,6 +175,7 @@ export function parseBackup(json: unknown, newId: () => string): ImportPlan {
       rec = {
         ...base, kind: 'installment', amountCents: 0, totalCents, startMonth, endMonth: null,
         installments: n, firstInstallment: k0, dueDay: null,
+        insertedOn: occurredOn(first, startMonth),
       };
       const lastAny = byMonth.get(lastMonthAny)!;
       const lastK = lastAny.parcAtual ?? k0 + monthsBetween(startMonth, lastMonthAny);

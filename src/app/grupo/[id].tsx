@@ -13,6 +13,19 @@ import { MonthHeader } from '../../ui/MonthHeader';
 import { Button, Card, Confirm, Empty, Row, Screen, Sheet, Txt } from '../../ui/primitives';
 import { colors } from '../../ui/theme';
 
+const dateBR = (iso: string) => iso.split('-').reverse().join('/');
+
+/** Linha de detalhe do item: vencimento (fixo), valor da compra (parcelado) e data de inserção. */
+function detail(o: Occurrence): string {
+  let text = '';
+  if (o.kind === 'fixed' && o.dueDay) text = `Vence dia ${String(o.dueDay).padStart(2, '0')}`;
+  else if (o.insertedOn) text = `Inserido em ${dateBR(o.insertedOn)}`;
+  if (o.kind === 'installment' && o.totalCents) {
+    text = `Compra de ${formatBRL(o.totalCents)}${text ? ` · ${text}` : ''}`;
+  }
+  return text;
+}
+
 export default function GrupoScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
@@ -110,8 +123,8 @@ export default function GrupoScreen() {
                         </View>
                       ) : null}
                     </Row>
-                    {o.kind === 'fixed' && o.dueDay ? (
-                      <Txt size={11} color={colors.muted} style={{ marginTop: 2 }}>Vence dia {String(o.dueDay).padStart(2, '0')}</Txt>
+                    {detail(o) ? (
+                      <Txt size={11} color={colors.muted} style={{ marginTop: 2 }}>{detail(o)}</Txt>
                     ) : null}
                     {o.overridden ? <Txt size={11} color={colors.amber} style={{ marginTop: 2 }}>valor ajustado neste mês</Txt> : null}
                   </View>

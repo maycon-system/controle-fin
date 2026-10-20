@@ -46,7 +46,7 @@ export async function applyImport({ db, now }: RepoDeps, plan: ImportPlan): Prom
          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         [
           r.id, r.groupId, r.categoryId ?? null, r.description, r.kind, r.amountCents, r.totalCents, r.startMonth,
-          r.endMonth ?? null, r.installments, r.firstInstallment, r.dueDay ?? null, t, t,
+          r.endMonth ?? null, r.installments, r.firstInstallment, r.dueDay ?? null, r.insertedOn ? `${r.insertedOn}T12:00:00.000Z` : t, t,
         ],
       );
     }

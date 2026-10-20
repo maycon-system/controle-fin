@@ -17,8 +17,8 @@ describe('recurrences repo', () => {
     const repo = createRecurrencesRepo(await createTestDeps());
     const f = await repo.create(fixed);
     const p = await repo.create(parc);
-    expect(await repo.get(f.id)).toEqual({ ...fixed, id: f.id });
-    expect(await repo.get(p.id)).toEqual({ ...parc, id: p.id });
+    expect(await repo.get(f.id)).toEqual({ ...fixed, id: f.id, insertedOn: expect.stringMatching(/^\d{4}-\d{2}-\d{2}$/) });
+    expect(await repo.get(p.id)).toEqual({ ...parc, id: p.id, insertedOn: expect.stringMatching(/^\d{4}-\d{2}-\d{2}$/) });
     expect((await repo.list()).map((r) => r.id).sort()).toEqual([f.id, p.id].sort());
   });
 
@@ -31,7 +31,9 @@ describe('recurrences repo', () => {
     const repo = createRecurrencesRepo(await createTestDeps());
     const f = await repo.create(fixed);
     await repo.update(f.id, { amountCents: 7052, description: 'Tim Controle' });
-    expect(await repo.get(f.id)).toEqual({ ...fixed, id: f.id, amountCents: 7052, description: 'Tim Controle' });
+    expect(await repo.get(f.id)).toEqual({
+      ...fixed, id: f.id, amountCents: 7052, description: 'Tim Controle', insertedOn: expect.any(String),
+    });
   });
 
   it('setEndMonth persiste e aceita null', async () => {

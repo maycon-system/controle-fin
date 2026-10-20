@@ -25,6 +25,24 @@ describe('computeOccurrences', () => {
     expect(occ[0].kind).toBe('variable');
   });
 
+  it('parcelado leva o valor da compra e a data de inserção em todas as parcelas', () => {
+    const rec = { ...parc, insertedOn: '2026-10-08' };
+    for (const month of ['2026-10', '2026-11', '2027-09']) {
+      const [o] = computeOccurrences(month, [], [rec], []);
+      expect(o.totalCents).toBe(168000);
+      expect(o.insertedOn).toBe('2026-10-08');
+    }
+  });
+
+  it('lançamento variável leva a data de inserção; item sem data não quebra', () => {
+    const entries: Entry[] = [
+      { id: 'e1', groupId: 'pix', description: 'Padaria', amountCents: 2150, month: '2026-10', insertedOn: '2026-10-16' },
+      { id: 'e2', groupId: 'pix', description: 'Antigo', amountCents: 700, month: '2026-10' },
+    ];
+    const occ = computeOccurrences('2026-10', entries, [], []);
+    expect(occ.map((o) => o.insertedOn)).toEqual(['2026-10-16', undefined]);
+  });
+
   it('fixo vale do início em diante, e não antes', () => {
     expect(computeOccurrences('2026-04', [], [fixed], [])).toHaveLength(0);
     expect(computeOccurrences('2026-05', [], [fixed], [])).toHaveLength(1);
